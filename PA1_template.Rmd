@@ -1,25 +1,161 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "PA1_template"
+author: "Luca"
+date: "25/4/2021"
+output: html_document
+keep_md: true
 ---
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
 
-## Loading and preprocessing the data
+## Loading and processing data
+Step only consists of setting the directory, creating folder and loading data
 
+```{r, echo=TRUE}
+library(ggplot2)
 
+# first set working directory
+setwd(
+  "C:/Users/luca-/Desktop/Data_Science/Course5_ReproducibleResearch/WorkingMaterial/Assignment1")
+
+# =================================================================
+# 1 Loading and processing data
+# =================================================================
+
+# create folder and unzip
+if(!file.exists("./data")){
+  dir.create("./data")
+}
+unzip("./repdata_data_activity.zip", exdir = "./data")
+
+act_data <- read.csv("./data/activity.csv")
+```
 
 ## What is mean total number of steps taken per day?
+First compute daily steps, aggregating data by date. Then, plot histogram and compute descriptive
+statistics, such as mean and median.
 
+```{r, echo=TRUE}
+# =================================================================
+# 2 Total number of steps
+# =================================================================
 
+# compute total nr. of steps per day
+daily_steps <- with(act_data, aggregate(x = steps, by = list(date), FUN = sum,
+                                        na.rm = TRUE, na.action = NULL))
+# rename and assign correct class
+names(daily_steps) <- c("Date", "steps")
+daily_steps$Date <- as.Date(daily_steps$Date)
+# plot
+plot(daily_steps, type = "h", lwd = 5, main = "Daily steps")
+
+# summary statistics
+summary(daily_steps$steps)
+
+# mean and median
+mean(daily_steps$steps)
+median(daily_steps$steps)
+
+```
 
 ## What is the average daily activity pattern?
+Step 3: aggregate data once more, by interval this time, computing the average number of steps
+per interval. Plot the time series and find out which interval contains the higher number 
+of steps on average.
 
+```{r, echo=TRUE}
+# =================================================================
+# 3 Average daily activity pattern
+# =================================================================
 
+# compute average number of steps per interval
+av_steps <- with(act_data, aggregate(x = steps, by = list(interval), FUN = mean,
+                         na.rm = TRUE))
+names(av_steps) <- c("interval", "av_steps")
+
+# plot time series
+plot(av_steps, type = "l", main = "Average nr of steps per Interval", ylab = "steps")
+
+# interval which contains max nr of steps
+av_steps[which.max(av_steps$av_steps),]
+```
 
 ## Imputing missing values
+Step4: first check out how many data are missing. Then, to fill those data points I opted for the average number of steps per interval calculated before. Finally, check out for differences with the original data. The analysis shows that filling the missing points with estimates can alter the result substantially.
 
+```{r, echo=TRUE}
+# =================================================================
+# 4 Imputing missing data
+# =================================================================
 
+# total nr of NAs
+sum(is.na(act_data$steps))
+
+# fill in all missing values: I opted for the mean for that interval
+filled_steps <- av_steps$av_steps[match(act_data$interval, av_steps$interval)]
+
+# Create a new dataset that is equal to the original dataset but with 
+# the missing data filled in
+
+act_data$steps[is.na(act_data$steps)] = filled_steps[is.na(act_data$steps)]
+
+# Make a histogram of the total number of steps taken each day and Calculate and 
+# report the mean and median total number of steps taken per day. Do these values 
+# differ from the estimates from the first part of the assignment? What is the 
+# impact of imputing missing data on the estimates of the total daily number of steps?
+# plot
+
+new_daily_steps <- with(act_data, aggregate(x = steps, by = list(date), FUN = sum,
+                                        na.rm = TRUE, na.action = NULL))
+# rename and assign correct class
+names(new_daily_steps) <- c("Date", "steps")
+new_daily_steps$Date <- as.Date(new_daily_steps$Date)
+
+plot(new_daily_steps, type = "h", lwd = 5, main = "Daily steps")
+
+# summary statistics
+summary(new_daily_steps$steps)
+
+# mean and median
+mean(new_daily_steps$steps)
+median(new_daily_steps$steps)
+
+```
 
 ## Are there differences in activity patterns between weekdays and weekends?
+Step 5: finally, seek for differences in activity patterns between days. I had to set up location and time in English first, to deal with language issues. Then, I made use of the r function "sapply", with my own function to distinguish between weekdays and weekends.
+The last step consists of plotting results.
+
+```{r, echo=TRUE}
+# =================================================================
+# 5 Are there differences in activity patterns between weekdays and weekends?
+# =================================================================
+
+# first set location and time in English (to avoid naming days in Italian)
+Sys.setlocale("LC_TIME", "English")
+
+weekday = c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
+weekend = c("Saturday", "Sunday")
+
+# function to split between week days and weekends
+my_fun = function(x){
+  if(weekdays(x) %in% weekday) {
+      day = "weekday"
+  }else if(weekdays(x) %in% weekend){
+      day = "weekend"
+  }
+  day
+}
+
+# add a column to act_data with the relative day, using function above
+act_data$day = sapply(as.Date(act_data$date), FUN = my_fun)
+
+weekday_act = with(act_data, aggregate(formula = steps ~ interval + day,
+                                       FUN = mean, na.rm = TRUE))
+
+p = qplot(x = interval, y = steps, data = weekday_act, facets = day~.)
+p + geom_line() + ggtitle("Average number of steps per interval")
+
+```
