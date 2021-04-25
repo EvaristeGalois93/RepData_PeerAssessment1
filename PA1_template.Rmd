@@ -15,11 +15,6 @@ Step only consists of setting the directory, creating folder and loading data
 
 ```{r, echo=TRUE}
 library(ggplot2)
-
-# first set working directory
-setwd(
-  "C:/Users/luca-/Desktop/Data_Science/Course5_ReproducibleResearch/WorkingMaterial/Assignment1")
-
 # =================================================================
 # 1 Loading and processing data
 # =================================================================
@@ -28,7 +23,7 @@ setwd(
 if(!file.exists("./data")){
   dir.create("./data")
 }
-unzip("./repdata_data_activity.zip", exdir = "./data")
+unzip("./activity.zip", exdir = "./data")
 
 act_data <- read.csv("./data/activity.csv")
 ```
